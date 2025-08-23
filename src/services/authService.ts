@@ -34,7 +34,7 @@ export const authService = {
           )
         `)
         .eq('employee_id', employeeId)
-        .single();
+        .maybeSingle();
 
       if (error || !worker) {
         console.error('User not found:', error);
