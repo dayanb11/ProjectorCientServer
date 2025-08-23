@@ -13,7 +13,10 @@ export interface AuthUser {
 
 export const authService = {
   async login(employeeId: string, password: string, useDemo: boolean = false): Promise<AuthUser | null> {
+    console.log('🔍 Login attempt with mode:', { employeeId, password, useDemo });
+    
     if (useDemo) {
+      console.log('🔍 Using demo authentication');
       return this.loginDemo(employeeId, password);
     }
     
