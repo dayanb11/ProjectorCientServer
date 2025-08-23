@@ -23,6 +23,19 @@ export const authService = {
     console.log('🔍 Attempting real DB login with:', { employeeId, password });
     
     try {
+      // First, let's check if there are any workers in the database at all
+      const { data: allWorkers, error: countError } = await supabase
+        .from('workers')
+        .select('id, employee_id, full_name')
+        .limit(10);
+      
+      console.log('🔍 Total workers in database:', allWorkers?.length || 0);
+      console.log('🔍 Sample workers:', allWorkers);
+      
+      if (countError) {
+        console.error('❌ Error querying workers table:', countError);
+      }
+      
       // Find user by employee_id
       const { data: worker, error } = await supabase
         .from('workers')
