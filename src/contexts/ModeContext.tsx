@@ -52,6 +52,7 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
       }
     }
   }
+  )
 
   const toggleMode = () => {
     const newMode: SystemMode = mode === 'demo' ? 'real' : 'demo';
