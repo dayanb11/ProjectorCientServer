@@ -31,7 +31,7 @@ export const authService = {
           role_description,
           email,
           password,
-          procurement_teams!procurement_team_id (
+          procurement_teams (
             name
           )
         `)
