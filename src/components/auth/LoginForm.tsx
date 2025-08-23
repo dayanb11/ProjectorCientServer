@@ -25,7 +25,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     setError('');
     setIsLoading(true);
 
-    console.log('🔍 Current mode in LoginForm:', isDemo ? 'demo' : 'real');
+    // Capture the current mode at the start of login to prevent race conditions
+    const currentMode = isDemo;
+    console.log('🔍 Current mode in LoginForm:', currentMode ? 'demo' : 'real');
 
     // Validate input
     if (!employeeId || employeeId.length !== 4) {
@@ -42,7 +44,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
     try {
       // Authenticate based on current mode
-      const user = await authService.login(employeeId, password, isDemo);
+      const user = await authService.login(employeeId, password, currentMode);
       
       if (!user) {
         setError('קוד משתמש או סיסמה שגויים');
