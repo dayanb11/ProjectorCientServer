@@ -52,15 +52,6 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
       }
     }
   }
-  )
-  const [mode, setMode] = useState<'demo' | 'real'>('demo');
-
-  useEffect(() => {
-    const saved = localStorage.getItem('systemMode');
-    if (saved === 'real' || saved === 'demo') {
-      setMode(saved);
-    }
-  }, []);
 
   const toggleMode = () => {
     const newMode: SystemMode = mode === 'demo' ? 'real' : 'demo';
