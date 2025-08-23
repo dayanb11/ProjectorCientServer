@@ -17,6 +17,8 @@ export const authService = {
       return this.loginDemo(employeeId, password);
     }
     
+    console.log('🔍 Attempting real DB login with:', { employeeId, password });
+    
     try {
       // Find user by employee_id
       const { data: worker, error } = await supabase
@@ -36,16 +38,27 @@ export const authService = {
         .eq('employee_id', employeeId)
         .maybeSingle();
 
+      console.log('🔍 Supabase query result:', { worker, error });
+
       if (error || !worker) {
-        console.error('User not found:', error);
+        console.error('❌ User not found:', { employeeId, error });
         return null;
       }
 
+      console.log('🔍 Found worker:', worker);
+      console.log('🔍 Password comparison:', { 
+        provided: password, 
+        stored: worker.password, 
+        match: worker.password === password 
+      });
+
       // Validate password
       if (worker.password !== password) {
-        console.error('Invalid password');
+        console.error('❌ Invalid password for user:', employeeId);
         return null;
       }
+
+      console.log('✅ Authentication successful for:', worker.full_name);
 
       // Transform to AuthUser format
       return {
