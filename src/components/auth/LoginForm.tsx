@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '../../services/authService';
 import { useMode } from '../../contexts/ModeContext';
+import { databaseChecker } from '../../utils/databaseChecker';
 
 interface LoginFormProps {
   onLogin: (user: any) => void;
@@ -19,6 +20,46 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const { toast } = useToast();
   const { isDemo } = useMode();
+
+  // Add button to check and populate database
+  const handleCheckDatabase = async () => {
+    setIsLoading(true);
+    try {
+      const results = await databaseChecker.checkAllTables();
+      console.log('📊 Database check results:', results);
+      
+      if (results?.workers.count === 0) {
+        console.log('🔧 Workers table is empty, attempting to populate...');
+        const success = await databaseChecker.populateBasicData();
+        if (success) {
+          toast({
+            title: "הצלחה",
+            description: "מסד הנתונים אוכלס בהצלחה עם נתוני הדגמה",
+          });
+        } else {
+          toast({
+            title: "שגיאה",
+            description: "שגיאה באיכלוס מסד הנתונים",
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "מידע",
+          description: `נמצאו ${results?.workers.count} עובדים במסד הנתונים`,
+        });
+      }
+    } catch (error) {
+      console.error('Error checking database:', error);
+      toast({
+        title: "שגיאה",
+        description: "שגיאה בבדיקת מסד הנתונים",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +185,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             >
               {isLoading ? 'מתחבר...' : 'כניסה למערכת'}
             </Button>
+
+            {!isDemo && (
+              <Button 
+                type="button"
+                variant="outline"
+                onClick={handleCheckDatabase}
+                className="w-full text-sm py-2 mt-2"
+                disabled={isLoading}
+              >
+                {isLoading ? 'בודק...' : 'בדוק ואכלס מסד נתונים'}
+              </Button>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
