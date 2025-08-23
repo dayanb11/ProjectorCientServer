@@ -25,6 +25,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     setError('');
     setIsLoading(true);
 
+    console.log('🔍 Current mode in LoginForm:', isDemo ? 'demo' : 'real');
+
     // Validate input
     if (!employeeId || employeeId.length !== 4) {
       setError('קוד משתמש חייב להיות בן 4 ספרות');
