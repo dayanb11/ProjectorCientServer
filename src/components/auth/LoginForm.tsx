@@ -24,11 +24,27 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   // Add button to check and populate database
   const handleCheckDatabase = async () => {
     setIsLoading(true);
+    setError('');
+    
     try {
+      // First check connection
+      console.log('🔍 Checking database connection...');
+      const connectionOk = await databaseChecker.checkConnection();
+      
+      if (!connectionOk) {
+        setError('לא ניתן להתחבר למסד הנתונים. בדוק את הגדרות Supabase.');
+        return;
+      }
+      
       const results = await databaseChecker.checkAllTables();
       console.log('📊 Database check results:', results);
       
-      if (results?.workers.count === 0) {
+      if (!results) {
+        setError('שגיאה בבדיקת מסד הנתונים');
+        return;
+      }
+      
+      if (results.workers.count === 0) {
         console.log('🔧 Workers table is empty, attempting to populate...');
         const success = await databaseChecker.populateBasicData();
         if (success) {
@@ -37,25 +53,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
             description: "מסד הנתונים אוכלס בהצלחה עם נתוני הדגמה",
           });
         } else {
-          toast({
-            title: "שגיאה",
-            description: "שגיאה באיכלוס מסד הנתונים",
-            variant: "destructive"
-          });
+          setError('שגיאה באיכלוס מסד הנתונים. בדוק הרשאות RLS.');
         }
       } else {
         toast({
           title: "מידע",
-          description: `נמצאו ${results?.workers.count} עובדים במסד הנתונים`,
+          description: `נמצאו ${results.workers.count} עובדים במסד הנתונים`,
         });
       }
     } catch (error) {
       console.error('Error checking database:', error);
-      toast({
-        title: "שגיאה",
-        description: "שגיאה בבדיקת מסד הנתונים",
-        variant: "destructive"
-      });
+      setError('שגיאה בבדיקת מסד הנתונים: ' + (error instanceof Error ? error.message : 'שגיאה לא ידועה'));
     } finally {
       setIsLoading(false);
     }

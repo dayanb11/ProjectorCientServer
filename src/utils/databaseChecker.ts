@@ -1,14 +1,51 @@
 import { supabase } from '../lib/supabase';
 
 export const databaseChecker = {
+  async checkConnection() {
+    console.log('🔍 Checking Supabase connection...');
+    console.log('🔍 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+    console.log('🔍 Anon Key exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+    
+    try {
+      // Test basic connection
+      const { data, error } = await supabase
+        .from('workers')
+        .select('count', { count: 'exact', head: true });
+      
+      console.log('🔍 Connection test result:', { data, error });
+      
+      if (error) {
+        console.error('❌ Connection error:', error);
+        return false;
+      }
+      
+      console.log('✅ Database connection successful');
+      return true;
+    } catch (error) {
+      console.error('❌ Connection test failed:', error);
+      return false;
+    }
+  },
+
   async checkAllTables() {
     console.log('🔍 Checking database contents...');
+    
+    // First check connection
+    const isConnected = await this.checkConnection();
+    if (!isConnected) {
+      console.error('❌ Cannot check tables - no database connection');
+      return null;
+    }
     
     try {
       // Check workers table
       const { data: workers, error: workersError } = await supabase
         .from('workers')
         .select('*');
+      
+      if (workersError) {
+        console.error('❌ Error querying workers:', workersError);
+      }
       
       console.log('👥 Workers table:', {
         count: workers?.length || 0,
