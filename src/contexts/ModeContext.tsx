@@ -45,25 +45,7 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
         console.error('Error parsing Supabase URL:', error);
       }
     }
-    } else {
-      // Default to demo mode if no saved mode exists
-      setMode('demo');
-      localStorage.setItem('systemMode', 'demo');
-    }
-
-    // Extract tenant name from Supabase URL for multi-tenant display
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    if (supabaseUrl) {
-      try {
-        const url = new URL(supabaseUrl);
-        const subdomain = url.hostname.split('.')[0];
-        setTenantName(subdomain);
-      } catch (error) {
-        console.error('Error parsing Supabase URL:', error);
-      }
-    }
-  }
-  )
+  }, []);
 
   const toggleMode = () => {
     const newMode: SystemMode = mode === 'demo' ? 'real' : 'demo';
