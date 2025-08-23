@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useMode } from '../../contexts/ModeContext';
 
 interface User {
   id: number;
@@ -35,6 +36,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const { mode } = useMode();
 
   useEffect(() => {
     // Check if user and token are stored in localStorage
@@ -47,6 +49,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Clear authentication when switching to real mode
+  useEffect(() => {
+    if (mode === 'real' && user) {
+      // Check if current user is from demo data
+      const isDemoUser = user.id <= 10; // Demo users have IDs 1-10
+      if (isDemoUser) {
+        logout();
+      }
+    }
+  }, [mode]);
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem('currentUser', JSON.stringify(userData));

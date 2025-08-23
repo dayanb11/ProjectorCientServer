@@ -1,10 +1,16 @@
 import React from 'react';
 import { useMode } from '../../contexts/ModeContext';
+import { useAuth } from '../auth/AuthProvider';
 import { Button } from '../ui/button';
 import { Database, TestTube } from 'lucide-react';
 
 const ModeToggle: React.FC = () => {
-  const { mode, toggleMode, tenantName, isDemo, isReal } = useMode();
+  const { mode, toggleModeWithLogout, tenantName, isDemo, isReal } = useMode();
+  const { logout } = useAuth();
+
+  const handleToggle = () => {
+    toggleModeWithLogout(logout);
+  };
 
   return (
     <div className="flex items-center gap-3">
@@ -17,7 +23,7 @@ const ModeToggle: React.FC = () => {
       
       {/* Mode Toggle Button */}
       <Button
-        onClick={toggleMode}
+        onClick={handleToggle}
         variant="outline"
         size="sm"
         className={`flex items-center gap-2 border-2 font-medium transition-all ${

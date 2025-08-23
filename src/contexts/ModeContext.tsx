@@ -5,6 +5,7 @@ export type SystemMode = 'demo' | 'real';
 interface ModeContextType {
   mode: SystemMode;
   toggleMode: () => void;
+  toggleModeWithLogout: (logoutCallback: () => void) => void;
   tenantName: string | null;
   isDemo: boolean;
   isReal: boolean;
@@ -55,9 +56,21 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
     localStorage.setItem('systemMode', newMode);
   };
 
+  const toggleModeWithLogout = (logoutCallback: () => void) => {
+    const newMode: SystemMode = mode === 'demo' ? 'real' : 'demo';
+    
+    // If switching to real mode, force logout to require DB authentication
+    if (newMode === 'real') {
+      logoutCallback();
+    }
+    
+    setMode(newMode);
+    localStorage.setItem('systemMode', newMode);
+  };
   const value = {
     mode,
     toggleMode,
+    toggleModeWithLogout,
     tenantName,
     isDemo: mode === 'demo',
     isReal: mode === 'real'
