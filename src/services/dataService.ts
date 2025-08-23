@@ -688,5 +688,3 @@ export const dataService = {
     }
   }
 };
-
-export { dataService }

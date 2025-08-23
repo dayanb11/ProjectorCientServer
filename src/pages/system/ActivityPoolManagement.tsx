@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Edit, Trash2 } from 'lucide-react';
 import { dataService } from '../../services/dataService';
-import { useEffect } from 'react';
 
 interface ActivityPoolRecord {
   id: number;
