@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { mockUsers, findUserByEmployeeId, validateUserPassword } from '../data/mockUsers';
 
 export interface AuthUser {
   id: number;
@@ -11,7 +12,11 @@ export interface AuthUser {
 }
 
 export const authService = {
-  async login(employeeId: string, password: string): Promise<AuthUser | null> {
+  async login(employeeId: string, password: string, useDemo: boolean = false): Promise<AuthUser | null> {
+    if (useDemo) {
+      return this.loginDemo(employeeId, password);
+    }
+    
     try {
       // Find user by employee_id
       const { data: worker, error } = await supabase
@@ -54,6 +59,32 @@ export const authService = {
       };
     } catch (error) {
       console.error('Login error:', error);
+      return null;
+    }
+  },
+
+  async loginDemo(employeeId: string, password: string): Promise<AuthUser | null> {
+    try {
+      const user = findUserByEmployeeId(employeeId);
+      if (!user) {
+        return null;
+      }
+
+      if (!validateUserPassword(user, password)) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        employeeId: user.employeeId,
+        fullName: user.fullName,
+        roleCode: user.roleCode,
+        roleDescription: user.roleDescription,
+        procurementTeam: user.procurementTeam,
+        email: user.email
+      };
+    } catch (error) {
+      console.error('Demo login error:', error);
       return null;
     }
   },

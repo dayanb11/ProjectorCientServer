@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { authService } from '../../services/authService';
+import { useMode } from '../../contexts/ModeContext';
 
 interface LoginFormProps {
   onLogin: (user: any) => void;
@@ -17,6 +18,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
+  const { isDemo } = useMode();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +39,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     }
 
     try {
-      // Authenticate with Supabase
-      const user = await authService.login(employeeId, password);
+      // Authenticate based on current mode
+      const user = await authService.login(employeeId, password, isDemo);
       
       if (!user) {
         setError('קוד משתמש או סיסמה שגויים');
@@ -142,9 +144,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             <div className="border-t pt-4">
-              <p className="font-medium mb-2">התחברות עם נתוני מסד הנתונים</p>
+              <p className="font-medium mb-2">
+                {isDemo ? 'התחברות עם נתוני הדגמה' : 'התחברות עם מסד הנתונים'}
+              </p>
               <p className="text-xs text-gray-500">
-                השתמש בקוד עובד וסיסמה שהוגדרו במערכת
+                {isDemo 
+                  ? 'השתמש בקודי עובד מנתוני הדמה (1001-9001)'
+                  : 'השתמש בקוד עובד וסיסמה שהוגדרו במסד הנתונים'
+                }
               </p>
             </div>
           </div>

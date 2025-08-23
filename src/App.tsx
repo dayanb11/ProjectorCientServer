@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './components/auth/AuthProvider';
+import { ModeProvider } from './contexts/ModeContext';
 import LoginForm from './components/auth/LoginForm';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Index from './pages/Index';
@@ -192,12 +193,14 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-        <Toaster />
-      </Router>
-    </AuthProvider>
+    <ModeProvider>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+          <Toaster />
+        </Router>
+      </AuthProvider>
+    </ModeProvider>
   );
 }
 

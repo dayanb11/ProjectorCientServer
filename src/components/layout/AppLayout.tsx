@@ -2,7 +2,9 @@ import React from 'react';
 import { Home, ShoppingCart, TrendingUp, Scale, Users, BarChart3, FileText, Search, UserCheck, Network, Wrench, Settings, PenTool as Tool, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { useMode } from '../../contexts/ModeContext';
 import { Button } from '../ui/button';
+import ModeToggle from '../common/ModeToggle';
 
 const iconMap = {
   Home,
@@ -156,6 +158,7 @@ const navigationItems: NavItem[] = [
 const AppLayout: React.FC<AppLayoutProps> = ({ children, currentRoute = '/', pageTitle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isDemo } = useMode();
   
   if (!user) {
     return null; // This should not happen as the app should redirect to login
@@ -269,6 +272,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentRoute = '/', pag
             </div>
             
             <div className="flex items-center gap-4">
+              <ModeToggle />
               <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
                 <option value="2024">2024</option>
                 <option value="2025">2025</option>
@@ -277,6 +281,17 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, currentRoute = '/', pag
               <span className="font-medium text-gray-800">{user.fullName}</span>
             </div>
           </div>
+          
+          {/* Demo Mode Indicator */}
+          {isDemo && (
+            <div className="bg-green-100 border-t border-green-200 px-6 py-2">
+              <div className="flex items-center justify-center">
+                <span className="text-green-800 text-sm font-medium">
+                  🧪 מצב הדגמה פעיל - עובד עם נתוני דמה בלבד
+                </span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Page Content */}
