@@ -49,8 +49,12 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
         setTenantName(subdomain);
       } catch (error) {
         console.error('Error parsing Supabase URL:', error);
-        setTenantName('unknown');
-      }
+  const [mode, setMode] = useState<'demo' | 'real'>('demo');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('systemMode');
+    if (saved === 'real' || saved === 'demo') {
+      setMode(saved);
     }
   }, []);
 
