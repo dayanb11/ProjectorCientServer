@@ -9,15 +9,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { AssignPermissions, ClosePermissions } from '../../types';
+import { dataService } from '../../services/dataService';
+import { useEffect } from 'react';
 
 const Permissions: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   const [permissions, setPermissions] = useState({
-    assignPermissions: 'Manager only' as AssignPermissions,
-    closePermissions: 'Automatic' as ClosePermissions
+    assignPermissions: '' as AssignPermissions,
+    closePermissions: '' as ClosePermissions
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const data = await dataService.getPermissions();
+      
+      setPermissions({
+        assignPermissions: (data.assign_permissions as AssignPermissions) || 'Manager only',
+        closePermissions: (data.close_permissions as ClosePermissions) || 'Automatic'
+      });
+    } catch (error) {
+      console.error('Error loading permissions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const assignOptions = [
     { value: 'Manager only', label: 'Manager only - מנהל רכש בלבד' },
@@ -31,11 +54,44 @@ const Permissions: React.FC = () => {
   ];
 
   const handleSave = () => {
-    toast({
-      title: "הצלחה",
-      description: "הגדרות ההרשאות נשמרו בהצלחה"
-    });
+    const saveData = async () => {
+      try {
+        const dbData = {
+          assign_permissions: permissions.assignPermissions,
+          close_permissions: permissions.closePermissions
+        };
+        
+        await dataService.updatePermissions(dbData);
+        
+        toast({
+          title: "הצלחה",
+          description: "הגדרות ההרשאות נשמרו בהצלחה"
+        });
+      } catch (error) {
+        console.error('Error saving permissions:', error);
+        toast({
+          title: "שגיאה",
+          description: error instanceof Error ? error.message : "שגיאה בשמירת הנתונים",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    saveData();
   };
+
+  if (loading) {
+    return (
+      <AppLayout currentRoute="/infrastructure-maintenance">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">טוען נתונים...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout currentRoute="/infrastructure-maintenance">

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { findUserByEmployeeId, validateUserPassword } from '../../data/mockUsers';
+import { authService } from '../../services/authService';
 
 interface LoginFormProps {
   onLogin: (user: any) => void;
@@ -37,18 +37,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     }
 
     try {
-      // Find user in mock data
-      const user = findUserByEmployeeId(employeeId);
+      // Authenticate with Supabase
+      const user = await authService.login(employeeId, password);
       
       if (!user) {
-        setError('קוד משתמש לא נמצא במערכת');
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password
-      if (!validateUserPassword(user, password)) {
-        setError('סיסמה שגויה');
+        setError('קוד משתמש או סיסמה שגויים');
         setIsLoading(false);
         return;
       }
@@ -149,17 +142,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             <div className="border-t pt-4">
-              <p className="font-medium mb-2">משתמשים לדוגמה:</p>
-              <div className="space-y-1 text-xs">
-                <p>מנהל מערכת: 9999 / 123456</p>
-                <p>מנהל רכש: 1001 / 123456</p>
-                <p>ראש צוות: 2001 / 123456</p>
-                <p>קניין: 3001 / 123456</p>
-                <p>גורם דורש: 4001 / 123456</p>
-                <p>מנהל יחידה: 5001 / 123456</p>
-                <p>חברי הנהלה: 6001 / 123456</p>
-                <p>גורם טכני: 9001 / 123456</p>
-              </div>
+              <p className="font-medium mb-2">התחברות עם נתוני מסד הנתונים</p>
+              <p className="text-xs text-gray-500">
+                השתמש בקוד עובד וסיסמה שהוגדרו במערכת
+              </p>
             </div>
           </div>
         </CardContent>

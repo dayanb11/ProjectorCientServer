@@ -10,7 +10,7 @@ import { Plus, Save, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { apiRequest } from '../utils/api';
+import { dataService } from '../services/dataService';
 
 interface ComplexityEstimate {
   estimateLevel1: number;
@@ -75,19 +75,16 @@ const PlanningHelpers: React.FC = () => {
       setLoading(true);
 
       // Load complexity estimates
-      const complexityRes = await apiRequest.get('/planning/complexity-estimates');
-      if (complexityRes.ok) {
-        const complexityData = await complexityRes.json();
-        setComplexityEstimate(complexityData);
-      }
+      const complexityData = await dataService.getComplexityEstimates();
+      setComplexityEstimate({
+        estimateLevel1: complexityData.estimate_level_1 || 5,
+        estimateLevel2: complexityData.estimate_level_2 || 10,
+        estimateLevel3: complexityData.estimate_level_3 || 20
+      });
 
       // Load acceptance options
-      const acceptanceRes = await apiRequest.get('/planning/acceptance-options');
-      if (acceptanceRes.ok) {
-        const acceptanceData = await acceptanceRes.json();
-        setAcceptanceOptions(acceptanceData.data || []);
-      }
-
+      const acceptanceData = await dataService.getAcceptanceOptions();
+      setAcceptanceOptions(acceptanceData || []);
     } catch (error) {
       console.error('Error loading planning helpers data:', error);
       toast({
@@ -110,26 +107,23 @@ const PlanningHelpers: React.FC = () => {
 
   const handleSaveComplexityEstimate = async () => {
     try {
-      const response = await apiRequest.put('/planning/complexity-estimates', complexityEstimate);
+      const dbData = {
+        estimate_level_1: complexityEstimate.estimateLevel1,
+        estimate_level_2: complexityEstimate.estimateLevel2,
+        estimate_level_3: complexityEstimate.estimateLevel3
+      };
       
-      if (response.ok) {
-        toast({
-          title: "נשמר בהצלחה",
-          description: "הערכות ימי הטיפול במשימה עודכנו"
-        });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "שגיאה",
-          description: errorData.error || "שגיאה בשמירת הנתונים",
-          variant: "destructive"
-        });
-      }
+      await dataService.updateComplexityEstimates(dbData);
+      
+      toast({
+        title: "נשמר בהצלחה",
+        description: "הערכות ימי הטיפול במשימה עודכנו"
+      });
     } catch (error) {
       console.error('Error saving complexity estimates:', error);
       toast({
         title: "שגיאה",
-        description: "שגיאה בשמירת הנתונים",
+        description: error instanceof Error ? error.message : "שגיאה בשמירת הנתונים",
         variant: "destructive"
       });
     }
@@ -161,53 +155,39 @@ const PlanningHelpers: React.FC = () => {
       const defaultMeaning = uploadCodeMeanings[newOptionForm.uploadCode];
 
       const optionData = {
-        yearId: newOptionForm.yearId,
-        uploadCode: newOptionForm.uploadCode,
-        broadMeaning: newOptionForm.broadMeaning || defaultMeaning
+        year_id: newOptionForm.yearId,
+        upload_code: newOptionForm.uploadCode,
+        upload_code_description: uploadCodeDescription,
+        broad_meaning: newOptionForm.broadMeaning || defaultMeaning
       };
 
-      let response;
+      let savedOption;
       if (editingOption) {
-        // Update existing
-        response = await apiRequest.put(`/planning/acceptance-options/${editingOption.id}`, optionData);
+        savedOption = await dataService.updateAcceptanceOption(editingOption.id, optionData);
       } else {
-        // Create new
-        response = await apiRequest.post('/planning/acceptance-options', optionData);
+        savedOption = await dataService.createAcceptanceOption(optionData);
       }
 
-      if (response.ok) {
-        const savedOption = await response.json();
-        
-        if (editingOption) {
-          setAcceptanceOptions(prev => prev.map(opt => 
-            opt.id === editingOption.id ? savedOption : opt
-          ));
-          toast({
-            title: "עודכן בהצלחה",
-            description: `רשומת שנת ${newOptionForm.yearId} עודכנה`
-          });
-        } else {
-          setAcceptanceOptions(prev => [...prev, savedOption].sort((a, b) => b.yearId - a.yearId));
-          toast({
-            title: "נוסף בהצלחה",
-            description: `רשומה חדשה עבור שנת ${newOptionForm.yearId} נוספה`
-          });
-        }
-
-        setIsNewOptionDialogOpen(false);
-      } else {
-        const errorData = await response.json();
+      if (editingOption) {
         toast({
-          title: "שגיאה",
-          description: errorData.error || "שגיאה בשמירת הנתונים",
-          variant: "destructive"
+          title: "עודכן בהצלחה",
+          description: `רשומת שנת ${newOptionForm.yearId} עודכנה`
+        });
+      } else {
+        toast({
+          title: "נוסף בהצלחה",
+          description: `רשומה חדשה עבור שנת ${newOptionForm.yearId} נוספה`
         });
       }
+
+      // Reload data
+      await loadData();
+      setIsNewOptionDialogOpen(false);
     } catch (error) {
       console.error('Error saving acceptance option:', error);
       toast({
         title: "שגיאה",
-        description: "שגיאה בשמירת הנתונים",
+        description: error instanceof Error ? error.message : "שגיאה בשמירת הנתונים",
         variant: "destructive"
       });
     }
@@ -216,27 +196,20 @@ const PlanningHelpers: React.FC = () => {
   const handleDeleteAcceptanceOption = async (id: number) => {
     if (window.confirm('האם אתה בטוח שברצונך למחוק רשומה זו?')) {
       try {
-        const response = await apiRequest.delete(`/planning/acceptance-options/${id}`);
+        await dataService.deleteAcceptanceOption(id);
         
-        if (response.ok) {
-          setAcceptanceOptions(prev => prev.filter(opt => opt.id !== id));
-          toast({
-            title: "נמחק בהצלחה",
-            description: "הרשומה נמחקה"
-          });
-        } else {
-          const errorData = await response.json();
-          toast({
-            title: "שגיאה",
-            description: errorData.error || "שגיאה במחיקת הרשומה",
-            variant: "destructive"
-          });
-        }
+        toast({
+          title: "נמחק בהצלחה",
+          description: "הרשומה נמחקה"
+        });
+        
+        // Reload data
+        await loadData();
       } catch (error) {
         console.error('Error deleting acceptance option:', error);
         toast({
           title: "שגיאה",
-          description: "שגיאה במחיקת הרשומה",
+          description: error instanceof Error ? error.message : "שגיאה במחיקת הרשומה",
           variant: "destructive"
         });
       }

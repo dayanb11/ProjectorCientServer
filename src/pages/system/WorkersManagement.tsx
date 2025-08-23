@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import WorkerFormDialog from '../../components/workers/WorkerFormDialog';
 import WorkersTable from '../../components/workers/WorkersTable';
 import { mockUsers } from '../../data/mockUsers';
+import { useEffect } from 'react';
 
 interface WorkerRecord {
   id: number;

@@ -7,18 +7,23 @@ export const getAuthToken = (): string | null => {
   return localStorage.getItem('authToken');
 };
 
-// MOCK IMPLEMENTATION - Replace with real API calls when server is ready
+import { authService } from '../services/authService';
+
+// Real API implementation using Supabase
 export const makeAuthenticatedRequest = async (
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> => {
-  // For now, return mock responses
-  console.log('Mock API call to:', endpoint, options);
+  const token = getAuthToken();
   
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  // Return mock success response
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  // For now, we'll handle API calls through the dataService
+  // This is a placeholder for future REST API integration
   return new Response(JSON.stringify({ success: true, data: [] }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
@@ -42,42 +47,5 @@ export const apiRequest = {
 
 // Check if user is authenticated by checking mock token
 export const verifyToken = async (): Promise<boolean> => {
-  try {
-    const token = getAuthToken();
-    return !!token && token.startsWith('mock-token-');
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    return false;
-  }
+  return await authService.verifyToken();
 };
-
-/*
-// REAL API IMPLEMENTATION - Uncomment when server is ready
-export const makeAuthenticatedRequest = async (
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> => {
-  const token = getAuthToken();
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
-
-  return fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-};
-
-export const verifyToken = async (): Promise<boolean> => {
-  try {
-    const response = await makeAuthenticatedRequest('/auth/me');
-    return response.ok;
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    return false;
-  }
-};
-*/

@@ -6,30 +6,39 @@ import { ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import SystemTableManager from '../../components/system/SystemTableManager';
 import { OrganizationalRole } from '../../types';
+import { dataService } from '../../services/dataService';
+import { useEffect } from 'react';
 
 const OrganizationalRoles: React.FC = () => {
   const navigate = useNavigate();
 
-  const [records, setRecords] = useState<OrganizationalRole[]>([
-    { 
-      id: 1, 
-      roleCode: 1, 
-      description: 'מנהל רכש',
-      permissions: 'הרשאות מלאות לניהול כל תהליכי הרכש'
-    },
-    { 
-      id: 2, 
-      roleCode: 2, 
-      description: 'ראש צוות',
-      permissions: 'ניהול צוות קניינים ומעקב משימות'
-    },
-    { 
-      id: 3, 
-      roleCode: 3, 
-      description: 'קניין',
-      permissions: 'ביצוע פעילויות רכש ומעקב משימות'
+  const [records, setRecords] = useState<OrganizationalRole[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const data = await dataService.getOrganizationalRoles();
+      
+      // Transform data
+      const transformedData = data.map((item: any) => ({
+        id: item.id,
+        roleCode: item.role_code,
+        description: item.description,
+        permissions: item.permissions
+      }));
+      
+      setRecords(transformedData);
+    } catch (error) {
+      console.error('Error loading organizational roles:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const fields = [
     { key: 'roleCode', label: 'קוד תפקיד (0-6)', type: 'number' as const, required: true },
@@ -37,18 +46,60 @@ const OrganizationalRoles: React.FC = () => {
     { key: 'permissions', label: 'פירוט הרשאות', type: 'text' as const, required: false }
   ];
 
-  const handleAdd = (record: Omit<OrganizationalRole, 'id'>) => {
-    const id = Math.max(...records.map(r => r.id), 0) + 1;
-    setRecords(prev => [...prev, { ...record, id }]);
+  const handleAdd = async (record: Omit<OrganizationalRole, 'id'>) => {
+    try {
+      const dbData = {
+        role_code: record.roleCode,
+        description: record.description,
+        permissions: record.permissions
+      };
+      
+      await dataService.createOrganizationalRole(dbData);
+      await loadData();
+    } catch (error) {
+      console.error('Error creating role:', error);
+      throw error;
+    }
   };
 
-  const handleUpdate = (id: number, record: Partial<OrganizationalRole>) => {
-    setRecords(prev => prev.map(r => r.id === id ? { ...r, ...record } : r));
+  const handleUpdate = async (id: number, record: Partial<OrganizationalRole>) => {
+    try {
+      const dbData = {
+        role_code: record.roleCode,
+        description: record.description,
+        permissions: record.permissions
+      };
+      
+      await dataService.updateOrganizationalRole(id, dbData);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating role:', error);
+      throw error;
+    }
   };
 
-  const handleDelete = (id: number) => {
-    setRecords(prev => prev.filter(r => r.id !== id));
+  const handleDelete = async (id: number) => {
+    try {
+      await dataService.deleteOrganizationalRole(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting role:', error);
+      throw error;
+    }
   };
+
+  if (loading) {
+    return (
+      <AppLayout currentRoute="/infrastructure-maintenance">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">טוען נתונים...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout currentRoute="/infrastructure-maintenance">

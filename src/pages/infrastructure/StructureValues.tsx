@@ -8,16 +8,40 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { dataService } from '../../services/dataService';
+import { useEffect } from 'react';
 
 const StructureValues: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
 
   const [structureValues, setStructureValues] = useState({
-    division: 'אגף',
-    department: 'מחלקה',
-    team: 'צוות'
+    division: '',
+    department: '',
+    team: ''
   });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const data = await dataService.getStructureValues();
+      
+      setStructureValues({
+        division: data.division_label || 'אגף',
+        department: data.department_label || 'מחלקה',
+        team: data.team_label || 'צוות'
+      });
+    } catch (error) {
+      console.error('Error loading structure values:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const structureFields = [
     { 
@@ -42,11 +66,45 @@ const StructureValues: React.FC = () => {
   };
 
   const handleSave = () => {
-    toast({
-      title: "הצלחה",
-      description: "כינויי המבנה הארגוני נשמרו בהצלחה"
-    });
+    const saveData = async () => {
+      try {
+        const dbData = {
+          division_label: structureValues.division,
+          department_label: structureValues.department,
+          team_label: structureValues.team
+        };
+        
+        await dataService.updateStructureValues(dbData);
+        
+        toast({
+          title: "הצלחה",
+          description: "כינויי המבנה הארגוני נשמרו בהצלחה"
+        });
+      } catch (error) {
+        console.error('Error saving structure values:', error);
+        toast({
+          title: "שגיאה",
+          description: error instanceof Error ? error.message : "שגיאה בשמירת הנתונים",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    saveData();
   };
+
+  if (loading) {
+    return (
+      <AppLayout currentRoute="/infrastructure-maintenance">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">טוען נתונים...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout currentRoute="/infrastructure-maintenance">
