@@ -56,10 +56,8 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
   const toggleModeWithLogout = (logoutCallback: () => void) => {
     const newMode: SystemMode = mode === 'demo' ? 'real' : 'demo';
     
-    // If switching to real mode, force logout to require DB authentication
-    if (newMode === 'real') {
-      logoutCallback();
-    }
+    // Always logout when switching modes to ensure clean state
+    logoutCallback();
     
     setMode(newMode);
     localStorage.setItem('systemMode', newMode);
