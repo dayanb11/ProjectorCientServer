@@ -34,6 +34,10 @@ export const ModeProvider: React.FC<ModeProviderProps> = ({ children }) => {
     const savedMode = localStorage.getItem('systemMode') as SystemMode;
     if (savedMode && ['demo', 'real'].includes(savedMode)) {
       setMode(savedMode);
+    } else {
+      // Default to demo mode if no saved mode exists
+      setMode('demo');
+      localStorage.setItem('systemMode', 'demo');
     }
 
     // Extract tenant name from Supabase URL for multi-tenant display
