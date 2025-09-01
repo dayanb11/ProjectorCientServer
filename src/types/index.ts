@@ -176,3 +176,4 @@ export interface NavItem {
   icon: string;
   roles: UserRole[];
   route: string;
+}
