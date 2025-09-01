@@ -7,15 +7,16 @@ interface TaskCardProps {
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
-  const formatDate = (date: Date | null | undefined) => {
+  const formatDate = (date: string | Date | null | undefined) => {
     if (!date) return 'לא הוגדר';
     return new Date(date).toLocaleDateString('he-IL');
   };
 
-  const formatQuarter = (date: Date | null | undefined) => {
+  const formatQuarter = (date: string | Date | null | undefined) => {
     if (!date) return 'לא הוגדר';
-    const quarter = Math.ceil((date.getMonth() + 1) / 3);
-    const year = date.getFullYear().toString().slice(-2);
+    const dateObj = new Date(date);
+    const quarter = Math.ceil((dateObj.getMonth() + 1) / 3);
+    const year = dateObj.getFullYear().toString().slice(-2);
     return `Q${quarter}/${year}`;
   };
 
@@ -45,7 +46,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
     }
   };
 
-  const calculateDaysAgo = (date: Date | null | undefined) => {
+  const calculateDaysAgo = (date: string | Date | null | undefined) => {
     if (!date) return 0;
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - new Date(date).getTime());
@@ -73,7 +74,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         
         {/* Task ID in top left */}
         <div className="text-left ml-4">
-          <div className="text-lg font-bold text-gray-900">{task.id}</div>
+          <div className="text-lg font-bold text-gray-900">{task.taskId}</div>
         </div>
       </div>
 
@@ -167,7 +168,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
             </span>
           </div>
           <div className="text-sm text-gray-600">
-            עדכון אחרון: {formatDate(task.lastUpdate)} ({daysAgo})
+            עדכון אחרון: {formatDate(task.lastUpdate)} ({daysAgo} ימים)
           </div>
         </div>
       </div>

@@ -10,7 +10,9 @@ import { Plus, Save, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { apiRequest } from '../utils/api';
+import { useComplexityEstimates, useUpdateComplexityEstimates, useAcceptanceOptions, useCreateRecord, useUpdateRecord, useDeleteRecord, queryKeys } from '../hooks/useApi';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 interface ComplexityEstimate {
   estimateLevel1: number;
@@ -29,16 +31,25 @@ interface AcceptanceOption {
 const PlanningHelpers: React.FC = () => {
   const { toast } = useToast();
   
+  // API hooks
+  const { data: complexityResponse, isLoading: complexityLoading, error: complexityError, refetch: refetchComplexity } = useComplexityEstimates();
+  const { data: acceptanceResponse, isLoading: acceptanceLoading, error: acceptanceError, refetch: refetchAcceptance } = useAcceptanceOptions();
+  const updateComplexityMutation = useUpdateComplexityEstimates();
+  const createAcceptanceOptionMutation = useCreateRecord('/planning/acceptance-options', queryKeys.acceptanceOptions);
+  const updateAcceptanceOptionMutation = useUpdateRecord('/planning/acceptance-options', queryKeys.acceptanceOptions);
+  const deleteAcceptanceOptionMutation = useDeleteRecord('/planning/acceptance-options', queryKeys.acceptanceOptions);
+  
   // State for complexity estimates
-  const [complexityEstimate, setComplexityEstimate] = useState<ComplexityEstimate>({
-    estimateLevel1: 5,
-    estimateLevel2: 10,
-    estimateLevel3: 20
-  });
+  const [complexityEstimate, setComplexityEstimate] = useState<ComplexityEstimate>(
+    complexityResponse?.data || {
+      estimateLevel1: 5,
+      estimateLevel2: 10,
+      estimateLevel3: 20
+    }
+  );
 
   // State for acceptance options
-  const [acceptanceOptions, setAcceptanceOptions] = useState<AcceptanceOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [acceptanceOptions, setAcceptanceOptions] = useState<AcceptanceOption[]>(acceptanceResponse?.data || []);
 
   // State for new acceptance option dialog
   const [isNewOptionDialogOpen, setIsNewOptionDialogOpen] = useState(false);
@@ -67,38 +78,16 @@ const PlanningHelpers: React.FC = () => {
 
   // Load data on component mount
   useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-
-      // Load complexity estimates
-      const complexityRes = await apiRequest.get('/planning/complexity-estimates');
-      if (complexityRes.ok) {
-        const complexityData = await complexityRes.json();
-        setComplexityEstimate(complexityData);
-      }
-
-      // Load acceptance options
-      const acceptanceRes = await apiRequest.get('/planning/acceptance-options');
-      if (acceptanceRes.ok) {
-        const acceptanceData = await acceptanceRes.json();
-        setAcceptanceOptions(acceptanceData.data || []);
-      }
-
-    } catch (error) {
-      console.error('Error loading planning helpers data:', error);
-      toast({
-        title: "שגיאה",
-        description: "שגיאה בטעינת הנתונים מהשרת",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+    if (complexityResponse?.data) {
+      setComplexityEstimate(complexityResponse.data);
     }
-  };
+  }, [complexityResponse]);
+  
+  useEffect(() => {
+    if (acceptanceResponse?.data) {
+      setAcceptanceOptions(acceptanceResponse.data);
+    }
+  }, [acceptanceResponse]);
 
   const handleComplexityEstimateChange = (field: keyof ComplexityEstimate, value: string) => {
     const numValue = parseInt(value) || 0;
@@ -110,28 +99,9 @@ const PlanningHelpers: React.FC = () => {
 
   const handleSaveComplexityEstimate = async () => {
     try {
-      const response = await apiRequest.put('/planning/complexity-estimates', complexityEstimate);
-      
-      if (response.ok) {
-        toast({
-          title: "נשמר בהצלחה",
-          description: "הערכות ימי הטיפול במשימה עודכנו"
-        });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "שגיאה",
-          description: errorData.error || "שגיאה בשמירת הנתונים",
-          variant: "destructive"
-        });
-      }
+      await updateComplexityMutation.mutateAsync(complexityEstimate);
     } catch (error) {
       console.error('Error saving complexity estimates:', error);
-      toast({
-        title: "שגיאה",
-        description: "שגיאה בשמירת הנתונים",
-        variant: "destructive"
-      });
     }
   };
 
@@ -163,82 +133,33 @@ const PlanningHelpers: React.FC = () => {
       const optionData = {
         yearId: newOptionForm.yearId,
         uploadCode: newOptionForm.uploadCode,
+        uploadCodeDescription,
         broadMeaning: newOptionForm.broadMeaning || defaultMeaning
       };
 
-      let response;
       if (editingOption) {
         // Update existing
-        response = await apiRequest.put(`/planning/acceptance-options/${editingOption.id}`, optionData);
+        await updateAcceptanceOptionMutation.mutateAsync({
+          id: editingOption.id,
+          data: optionData
+        });
       } else {
         // Create new
-        response = await apiRequest.post('/planning/acceptance-options', optionData);
+        await createAcceptanceOptionMutation.mutateAsync(optionData);
       }
 
-      if (response.ok) {
-        const savedOption = await response.json();
-        
-        if (editingOption) {
-          setAcceptanceOptions(prev => prev.map(opt => 
-            opt.id === editingOption.id ? savedOption : opt
-          ));
-          toast({
-            title: "עודכן בהצלחה",
-            description: `רשומת שנת ${newOptionForm.yearId} עודכנה`
-          });
-        } else {
-          setAcceptanceOptions(prev => [...prev, savedOption].sort((a, b) => b.yearId - a.yearId));
-          toast({
-            title: "נוסף בהצלחה",
-            description: `רשומה חדשה עבור שנת ${newOptionForm.yearId} נוספה`
-          });
-        }
-
-        setIsNewOptionDialogOpen(false);
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "שגיאה",
-          description: errorData.error || "שגיאה בשמירת הנתונים",
-          variant: "destructive"
-        });
-      }
+      setIsNewOptionDialogOpen(false);
     } catch (error) {
       console.error('Error saving acceptance option:', error);
-      toast({
-        title: "שגיאה",
-        description: "שגיאה בשמירת הנתונים",
-        variant: "destructive"
-      });
     }
   };
 
   const handleDeleteAcceptanceOption = async (id: number) => {
     if (window.confirm('האם אתה בטוח שברצונך למחוק רשומה זו?')) {
       try {
-        const response = await apiRequest.delete(`/planning/acceptance-options/${id}`);
-        
-        if (response.ok) {
-          setAcceptanceOptions(prev => prev.filter(opt => opt.id !== id));
-          toast({
-            title: "נמחק בהצלחה",
-            description: "הרשומה נמחקה"
-          });
-        } else {
-          const errorData = await response.json();
-          toast({
-            title: "שגיאה",
-            description: errorData.error || "שגיאה במחיקת הרשומה",
-            variant: "destructive"
-          });
-        }
+        await deleteAcceptanceOptionMutation.mutateAsync(id);
       } catch (error) {
         console.error('Error deleting acceptance option:', error);
-        toast({
-          title: "שגיאה",
-          description: "שגיאה במחיקת הרשומה",
-          variant: "destructive"
-        });
       }
     }
   };
@@ -253,15 +174,21 @@ const PlanningHelpers: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (complexityLoading || acceptanceLoading) {
     return (
       <AppLayout currentRoute="/planning-helpers">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">טוען נתונים...</p>
-          </div>
-        </div>
+        <LoadingSpinner text="טוען עזרי תכנון..." />
+      </AppLayout>
+    );
+  }
+  
+  if (complexityError || acceptanceError) {
+    return (
+      <AppLayout currentRoute="/planning-helpers">
+        <ErrorMessage onRetry={() => {
+          refetchComplexity();
+          refetchAcceptance();
+        }} />
       </AppLayout>
     );
   }

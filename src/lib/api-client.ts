@@ -33,6 +33,8 @@ export interface LoginResponse {
     roleDescription: string;
     procurementTeam?: string;
     email?: string;
+    divisionId?: number;
+    departmentId?: number;
   };
   accessToken: string;
   refreshToken: string;
@@ -86,10 +88,11 @@ class ApiClient {
   constructor() {
     this.client = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: false,
     });
 
     this.setupInterceptors();
@@ -209,6 +212,11 @@ class ApiClient {
     } catch {
       return false;
     }
+  }
+
+  async getCurrentUser(): Promise<ApiResponse<any>> {
+    const response = await this.client.get('/auth/me');
+    return response.data;
   }
 
   // Programs/Tasks endpoints

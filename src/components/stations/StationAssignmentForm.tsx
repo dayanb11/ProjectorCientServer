@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Program, ProgramTask, TaskStatus } from '../../types';
 import { ChevronDown, Calendar, MessageSquare, Trash2 } from 'lucide-react';
-import { mockActivityPool } from '../../data/mockData';
-import { mockEngagementTypes, getProcessesForEngagementType } from '../../data/engagementTypesData';
+import { useActivityPool, useEngagementTypes } from '../../hooks/useApi';
 import { useToast } from '../ui/use-toast';
 import { useAuth } from '../auth/AuthProvider';
 import {
@@ -40,6 +39,13 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
   const [stationNotes, setStationNotes] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  // API hooks
+  const { data: activityPoolResponse } = useActivityPool();
+  const { data: engagementTypesResponse } = useEngagementTypes();
+  
+  const activityPool = activityPoolResponse?.data || [];
+  const engagementTypes = engagementTypesResponse?.data || [];
 
   // Get user permissions based on role and status
   const getUserPermissions = () => {
@@ -79,11 +85,12 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
     setSelectedEngagementTypeId(engagementTypeId);
     
     // Get processes for selected engagement type
-    const processes = getProcessesForEngagementType(engagementTypeId);
+    const selectedType = engagementTypes.find((et: any) => et.id === engagementTypeId);
+    const processes = selectedType?.processes || [];
     
     // Create new stations based on the engagement type processes
     const newStations: ProgramTask[] = processes.map(process => {
-      const activity = mockActivityPool.find(a => a.id === process.activityId);
+      const activity = activityPool.find((a: any) => a.id === process.activityId);
       return {
         programId: program.taskId,
         stationId: process.stationId,
@@ -97,7 +104,7 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
     setStations(newStations);
     
     // Update the program with new stations and engagement type
-    const selectedEngagementType = mockEngagementTypes.find(et => et.id === engagementTypeId);
+    const selectedEngagementType = engagementTypes.find((et: any) => et.id === engagementTypeId);
     const updatedProgram = {
       ...program,
       engagementTypeId,
@@ -139,7 +146,7 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
       return;
     }
     
-    const activity = mockActivityPool.find(a => a.id === activityId);
+    const activity = activityPool.find((a: any) => a.id === activityId);
     const updatedStations = [...stations];
     const existingStationIndex = updatedStations.findIndex(s => s.stationId === stationId);
     
@@ -481,7 +488,7 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
                 className="w-full text-sm border border-gray-300 rounded px-3 py-2 bg-white appearance-none text-right"
               >
                 <option value="">בחר סוג התקשרות</option>
-                {mockEngagementTypes.map(engagementType => (
+                {engagementTypes.map((engagementType: any) => (
                   <option key={engagementType.id} value={engagementType.id}>
                     {engagementType.name}
                   </option>
@@ -525,7 +532,7 @@ const StationAssignmentForm: React.FC<StationAssignmentFormProps> = ({
                         className="w-full text-xs border border-gray-300 rounded px-2 py-1 bg-white appearance-none min-h-[2rem]"
                       >
                         <option value="">בחר פעילות</option>
-                        {availableActivities.map(activity => (
+                        {availableActivities.map((activity: any) => (
                           <option key={activity.id} value={activity.id}>
                             {activity.name.length > 30 ? activity.name.substring(0, 30) + '...' : activity.name}
                           </option>

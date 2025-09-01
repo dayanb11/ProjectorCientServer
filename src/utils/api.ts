@@ -1,83 +1,36 @@
-// API utility functions for making authenticated requests
-// COMMENTED OUT - Using mock data instead
-
-const API_BASE_URL = '/api';
-
-export const getAuthToken = (): string | null => {
-  return localStorage.getItem('authToken');
-};
-
-// MOCK IMPLEMENTATION - Replace with real API calls when server is ready
-export const makeAuthenticatedRequest = async (
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> => {
-  // For now, return mock responses
-  console.log('Mock API call to:', endpoint, options);
-  
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
-  // Return mock success response
-  return new Response(JSON.stringify({ success: true, data: [] }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
-};
+// Legacy API utility - replaced by new api-client.ts
+// This file is kept for backward compatibility but should not be used for new code
 
 export const apiRequest = {
-  get: (endpoint: string) => makeAuthenticatedRequest(endpoint, { method: 'GET' }),
-  post: (endpoint: string, data: any) => 
-    makeAuthenticatedRequest(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-  put: (endpoint: string, data: any) => 
-    makeAuthenticatedRequest(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-  delete: (endpoint: string) => makeAuthenticatedRequest(endpoint, { method: 'DELETE' }),
-};
-
-// Check if user is authenticated by checking mock token
-export const verifyToken = async (): Promise<boolean> => {
-  try {
-    const token = getAuthToken();
-    return !!token && token.startsWith('mock-token-');
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    return false;
+  get: async (endpoint: string) => {
+    console.warn('Using legacy apiRequest.get - please migrate to apiClient');
+    return { ok: false, json: async () => ({ data: [] }) };
+  },
+  post: async (endpoint: string, data: any) => {
+    console.warn('Using legacy apiRequest.post - please migrate to apiClient');
+    return { ok: false, json: async () => ({ data: null }) };
+  },
+  put: async (endpoint: string, data: any) => {
+    console.warn('Using legacy apiRequest.put - please migrate to apiClient');
+    return { ok: false, json: async () => ({ data: null }) };
+  },
+  delete: async (endpoint: string) => {
+    console.warn('Using legacy apiRequest.delete - please migrate to apiClient');
+    return { ok: false, json: async () => ({ data: null }) };
   }
 };
 
-/*
-// REAL API IMPLEMENTATION - Uncomment when server is ready
-export const makeAuthenticatedRequest = async (
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> => {
-  const token = getAuthToken();
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
-  };
+export const getAuthToken = (): string | null => {
+  console.warn('Using legacy getAuthToken - please use apiClient');
+  return null;
+};
 
-  return fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+export const makeAuthenticatedRequest = async (endpoint: string, options: RequestInit = {}): Promise<Response> => {
+  console.warn('Using legacy makeAuthenticatedRequest - please use apiClient');
+  return new Response(JSON.stringify({ success: false }), { status: 500 });
 };
 
 export const verifyToken = async (): Promise<boolean> => {
-  try {
-    const response = await makeAuthenticatedRequest('/auth/me');
-    return response.ok;
-  } catch (error) {
-    console.error('Token verification failed:', error);
-    return false;
-  }
+  console.warn('Using legacy verifyToken - please use apiClient');
+  return false;
 };
-*/

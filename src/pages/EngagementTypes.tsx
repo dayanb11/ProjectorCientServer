@@ -8,65 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Plus, Save, Trash2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { EngagementTypeWithProcess } from '../types/engagementTypes';
-import { mockActivityPool } from '../data/mockData';
+import { useActivityPool, useEngagementTypes, useUpdateRecord, queryKeys } from '../hooks/useApi';
 import { Alert, AlertDescription } from '../components/ui/alert';
-
-// Mock data for engagement types with processes
-const mockEngagementTypesData: EngagementTypeWithProcess[] = [
-  {
-    id: 1,
-    name: 'מכרז פומבי',
-    processes: [
-      { engagementTypeId: 1, stationId: 1, activityId: 1 },
-      { engagementTypeId: 1, stationId: 2, activityId: 2 },
-      { engagementTypeId: 1, stationId: 3, activityId: 3 },
-      { engagementTypeId: 1, stationId: 4, activityId: 4 },
-      { engagementTypeId: 1, stationId: 5, activityId: 6 },
-      { engagementTypeId: 1, stationId: 6, activityId: 7 },
-      { engagementTypeId: 1, stationId: 7, activityId: 8 },
-      { engagementTypeId: 1, stationId: 8, activityId: 9 },
-      { engagementTypeId: 1, stationId: 9, activityId: 10 },
-      { engagementTypeId: 1, stationId: 10, activityId: 11 }
-    ]
-  },
-  {
-    id: 2,
-    name: 'מכרז מוגבל',
-    processes: [
-      { engagementTypeId: 2, stationId: 1, activityId: 1 },
-      { engagementTypeId: 2, stationId: 2, activityId: 2 },
-      { engagementTypeId: 2, stationId: 3, activityId: 5 },
-      { engagementTypeId: 2, stationId: 4, activityId: 10 },
-      { engagementTypeId: 2, stationId: 5, activityId: 11 }
-    ]
-  },
-  {
-    id: 3,
-    name: 'מכרז פתוח מוגבל',
-    processes: [
-      { engagementTypeId: 3, stationId: 1, activityId: 1 },
-      { engagementTypeId: 3, stationId: 2, activityId: 2 },
-      { engagementTypeId: 3, stationId: 3, activityId: 5 },
-      { engagementTypeId: 3, stationId: 4, activityId: 11 }
-    ]
-  },
-  {
-    id: 4,
-    name: 'רכש השוואתי',
-    processes: [
-      { engagementTypeId: 4, stationId: 1, activityId: 1 },
-      { engagementTypeId: 4, stationId: 2, activityId: 2 },
-      { engagementTypeId: 4, stationId: 3, activityId: 5 }
-    ]
-  }
-];
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 const EngagementTypes = () => {
-  const [engagementTypes, setEngagementTypes] = useState<EngagementTypeWithProcess[]>(mockEngagementTypesData);
+  // API hooks
+  const { data: engagementTypesResponse, isLoading: engagementTypesLoading, error: engagementTypesError, refetch: refetchEngagementTypes } = useEngagementTypes();
+  const { data: activityPoolResponse, isLoading: activityPoolLoading, error: activityPoolError } = useActivityPool();
+  const updateEngagementTypeMutation = useUpdateRecord('/system/engagement-types', queryKeys.engagementTypes);
+  
+  const [engagementTypes, setEngagementTypes] = useState<any[]>([]);
   const [newTypeName, setNewTypeName] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { toast } = useToast();
+  
+  const activityPool = activityPoolResponse?.data || [];
+  
+  // Update local state when API data changes
+  useEffect(() => {
+    if (engagementTypesResponse?.data) {
+      setEngagementTypes(engagementTypesResponse.data);
+    }
+  }, [engagementTypesResponse]);
 
   const validateEngagementTypes = () => {
     const errors: string[] = [];
@@ -218,11 +183,27 @@ const EngagementTypes = () => {
     return type?.processes.map(p => p.activityId) || [];
   };
 
-  const getActivityName = (activityId: number | null) => {
+  const getActivityName = (activityId: number | null): string | null => {
     if (!activityId) return null;
-    const activity = mockActivityPool.find(a => a.id === activityId);
+    const activity = activityPool.find((a: any) => a.id === activityId);
     return activity?.name || null;
   };
+
+  if (engagementTypesLoading || activityPoolLoading) {
+    return (
+      <AppLayout currentRoute="/engagement-types">
+        <LoadingSpinner text="טוען נתוני סוגי התקשרויות..." />
+      </AppLayout>
+    );
+  }
+  
+  if (engagementTypesError || activityPoolError) {
+    return (
+      <AppLayout currentRoute="/engagement-types">
+        <ErrorMessage onRetry={() => refetchEngagementTypes()} />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout currentRoute="/engagement-types">
@@ -305,8 +286,8 @@ const EngagementTypes = () => {
                           {engagementTypes.map(type => {
                             const currentActivityId = getActivityForTypeAndStation(type.id, stationId);
                             const usedActivities = getUsedActivitiesForType(type.id);
-                            const availableActivities = mockActivityPool.filter(
-                              activity => !usedActivities.includes(activity.id) || currentActivityId === activity.id
+                            const availableActivities = activityPool.filter(
+                              (activity: any) => !usedActivities.includes(activity.id) || currentActivityId === activity.id
                             );
                             const activityName = getActivityName(currentActivityId);
 
@@ -331,7 +312,7 @@ const EngagementTypes = () => {
                                     <SelectItem value="none">
                                       <span className="text-gray-500">ריק</span>
                                     </SelectItem>
-                                    {availableActivities.map(activity => (
+                                    {availableActivities.map((activity: any) => (
                                       <SelectItem key={activity.id} value={activity.id.toString()}>
                                         <span className="text-black">{activity.name}</span>
                                       </SelectItem>

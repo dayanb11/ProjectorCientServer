@@ -8,7 +8,9 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import WorkerFormDialog from '../../components/workers/WorkerFormDialog';
 import WorkersTable from '../../components/workers/WorkersTable';
-import { mockUsers } from '../../data/mockUsers';
+import { useWorkers, useDivisions, useDepartments, useProcurementTeams, useOrganizationalRoles, useCreateRecord, useUpdateRecord, useDeleteRecord, queryKeys } from '../../hooks/useApi';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ErrorMessage from '../../components/common/ErrorMessage';
 
 interface WorkerRecord {
   id: number;
@@ -49,68 +51,26 @@ interface ProcurementTeam {
   name: string;
 }
 
-// Mock data
-const mockOrganizationalRoles: OrganizationalRole[] = [
-  { id: 1, roleCode: 0, description: 'מנהלן מערכת', permissions: 'מלא' },
-  { id: 2, roleCode: 1, description: 'מנהל רכש', permissions: 'ניהול רכש' },
-  { id: 3, roleCode: 2, description: 'ראש צוות', permissions: 'ניהול צוות' },
-  { id: 4, roleCode: 3, description: 'קניין', permissions: 'ביצוע רכש' },
-  { id: 5, roleCode: 4, description: 'גורם דורש', permissions: 'הגשת דרישות' },
-  { id: 6, roleCode: 5, description: 'מנהל יחידה', permissions: 'ניהול יחידה' },
-  { id: 7, roleCode: 6, description: 'חברי הנהלה וגורם מטה ארגוני', permissions: 'צפייה' },
-  { id: 8, roleCode: 9, description: 'גורם טכני', permissions: 'תחזוקה טכנית' }
-];
-
-const mockDivisions: Division[] = [
-  { id: 1, name: 'לוגיסטיקה' },
-  { id: 2, name: 'טכנולוגיה' },
-  { id: 3, name: 'מחקר ופיתוח' },
-  { id: 4, name: 'משאבי אנוש' }
-];
-
-const mockDepartments: Department[] = [
-  { id: 1, name: 'רכש וחוזים', divisionId: 1 },
-  { id: 2, name: 'תפעול ותחזוקה', divisionId: 1 },
-  { id: 3, name: 'מערכות מידע', divisionId: 2 },
-  { id: 4, name: 'פיתוח תוכנה', divisionId: 2 }
-];
-
-const mockProcurementTeams: ProcurementTeam[] = [
-  { id: 1, name: 'יעודי' },
-  { id: 2, name: 'טכנולוגי' },
-  { id: 3, name: 'לוגיסטי' },
-  { id: 4, name: 'מחשוב' },
-  { id: 5, name: 'הנדסי' },
-  { id: 6, name: 'ביטחוני' }
-];
-
-// Convert mock users to worker records
-const mockWorkersData: WorkerRecord[] = mockUsers.map(user => ({
-  id: user.id,
-  employeeId: user.employeeId,
-  roleCode: user.roleCode,
-  fullName: user.fullName,
-  roleDescription: user.roleDescription,
-  divisionId: undefined,
-  departmentId: undefined,
-  procurementTeam: user.procurementTeam || '',
-  password: '******', // Never show actual password
-  availableWorkDays: '200',
-  email: user.email,
-  divisionName: undefined,
-  departmentName: undefined
-}));
-
 const WorkersManagement: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [records, setRecords] = useState<WorkerRecord[]>(mockWorkersData);
-  const [divisions] = useState<Division[]>(mockDivisions);
-  const [departments] = useState<Department[]>(mockDepartments);
-  const [procurementTeams] = useState<ProcurementTeam[]>(mockProcurementTeams);
-  const [organizationalRoles] = useState<OrganizationalRole[]>(mockOrganizationalRoles);
-  const [loading, setLoading] = useState(false);
+  // API hooks
+  const { data: workersResponse, isLoading, error, refetch } = useWorkers();
+  const { data: divisionsResponse } = useDivisions();
+  const { data: departmentsResponse } = useDepartments();
+  const { data: procurementTeamsResponse } = useProcurementTeams();
+  const { data: organizationalRolesResponse } = useOrganizationalRoles();
+  
+  const createWorkerMutation = useCreateRecord('/system/workers', queryKeys.workers);
+  const updateWorkerMutation = useUpdateRecord('/system/workers', queryKeys.workers);
+  const deleteWorkerMutation = useDeleteRecord('/system/workers', queryKeys.workers);
+  
+  const records = workersResponse?.data || [];
+  const divisions = divisionsResponse?.data || [];
+  const departments = departmentsResponse?.data || [];
+  const procurementTeams = procurementTeamsResponse?.data || [];
+  const organizationalRoles = organizationalRolesResponse?.data || [];
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<WorkerRecord | null>(null);
@@ -207,8 +167,6 @@ const WorkersManagement: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       const processedData = { ...formData };
       
@@ -227,34 +185,13 @@ const WorkersManagement: React.FC = () => {
 
       if (editingRecord) {
         // Update existing worker
-        const updatedWorker = {
-          ...editingRecord,
-          ...processedData,
-          password: formData.password === '******' ? editingRecord.password : formData.password
-        } as WorkerRecord;
-        
-        setRecords(prev => prev.map(record => 
-          record.id === editingRecord.id ? updatedWorker : record
-        ));
-        
-        toast({
-          title: "הצלחה",
-          description: "הרשומה עודכנה בהצלחה"
+        await updateWorkerMutation.mutateAsync({
+          id: editingRecord.id,
+          data: processedData
         });
       } else {
         // Create new worker
-        const newWorker = {
-          id: Math.max(...records.map(r => r.id)) + 1,
-          ...processedData,
-          password: '******' // Don't store actual password in mock
-        } as WorkerRecord;
-        
-        setRecords(prev => [...prev, newWorker]);
-        
-        toast({
-          title: "הצלחה",
-          description: "הרשומה נוספה בהצלחה"
-        });
+        await createWorkerMutation.mutateAsync(processedData);
         
         // Redirect to home page after adding user
         setTimeout(() => {
@@ -278,21 +215,9 @@ const WorkersManagement: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (window.confirm('האם אתה בטוח שברצונך למחוק רשומה זו?')) {
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        setRecords(prev => prev.filter(record => record.id !== id));
-        toast({
-          title: "הצלחה",
-          description: "הרשומה נמחקה בהצלחה"
-        });
+        await deleteWorkerMutation.mutateAsync(id);
       } catch (error) {
         console.error('Error deleting worker:', error);
-        toast({
-          title: "שגיאה",
-          description: "שגיאה במחיקת הרשומה",
-          variant: "destructive"
-        });
       }
     }
   };
@@ -302,15 +227,18 @@ const WorkersManagement: React.FC = () => {
     setFormData(prev => ({ ...prev, [key]: value }));
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <AppLayout currentRoute="/system-settings">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">טוען נתונים...</p>
-          </div>
-        </div>
+        <LoadingSpinner text="טוען נתוני עובדים..." />
+      </AppLayout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <AppLayout currentRoute="/system-settings">
+        <ErrorMessage onRetry={() => refetch()} />
       </AppLayout>
     );
   }

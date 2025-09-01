@@ -9,9 +9,11 @@ import ProgramForm from '../components/program/ProgramForm';
 import StationAssignmentForm from '../components/stations/StationAssignmentForm';
 import StatusBadge from '../components/common/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
-import { mockPrograms } from '../data/mockPrograms';
 import { useAuth } from '../components/auth/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { useProgram, useUpdateProgram } from '../hooks/useApi';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
 
 // Declare global validation function
 declare global {
@@ -26,11 +28,29 @@ const StationAssignment = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  
+  // API hooks
+  const { data: programResponse, isLoading, error, refetch } = useProgram(Number(taskId));
+  const updateProgramMutation = useUpdateProgram();
 
   console.log('StationAssignment component loaded with taskId:', taskId);
 
-  // Find program from mock data
-  const initialProgram = mockPrograms.find(p => p.taskId === Number(taskId));
+  const initialProgram = programResponse?.data;
+  
+  if (isLoading) {
+    return <LoadingSpinner text="טוען פרטי משימה..." />;
+  }
+  
+  if (error) {
+    return (
+      <AppLayout currentRoute="/station-assignment">
+        <ErrorMessage 
+          message="שגיאה בטעינת פרטי המשימה"
+          onRetry={() => refetch()}
+        />
+      </AppLayout>
+    );
+  }
   
   if (!initialProgram) {
     console.log('Program not found for taskId:', taskId);
@@ -78,9 +98,21 @@ const StationAssignment = () => {
       }
     }
 
-    toast({
-      title: "שינויים נשמרו",
-      description: "פרטי המשימה נשמרו בהצלחה",
+    // Save via API
+    updateProgramMutation.mutate({
+      taskId: program.taskId,
+      data: {
+        title: program.title,
+        description: program.description,
+        assignedOfficerId: program.assignedOfficerId,
+        teamId: program.teamId,
+        complexity: program.complexity,
+        startDate: program.startDate?.toISOString(),
+        planningNotes: program.planningNotes,
+        officerNotes: program.officerNotes,
+        status: program.status,
+        engagementTypeId: program.engagementTypeId
+      }
     });
   };
 
@@ -112,9 +144,10 @@ const StationAssignment = () => {
       };
       setProgram(updatedProgram);
       
-      toast({
-        title: "המשימה קובעה",
-        description: "המשימה עברה לשלב תכנון",
+      // Save status change via API
+      updateProgramMutation.mutate({
+        taskId: program.taskId,
+        data: { status: 'Plan' }
       });
     } else {
       toast({
@@ -132,9 +165,10 @@ const StationAssignment = () => {
     };
     setProgram(updatedProgram);
     
-    toast({
-      title: "סטטוס עודכן",
-      description: `סטטוס המשימה שונה ל-${STATUS_CONFIG[newStatus as keyof typeof STATUS_CONFIG]?.label}`,
+    // Save status change via API
+    updateProgramMutation.mutate({
+      taskId: program.taskId,
+      data: { status: newStatus }
     });
   };
 

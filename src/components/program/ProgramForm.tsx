@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Program, TaskStatus, STATUS_CONFIG, PLANNING_SOURCE_CONFIG, CURRENCY_CONFIG } from '../../types';
+import { Program, STATUS_CONFIG, PLANNING_SOURCE_CONFIG, CURRENCY_CONFIG } from '../../types';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { useAuth } from '../auth/AuthProvider';
+import { useDivisions, useDepartments, useDomains, useWorkers } from '../../hooks/useApi';
 
 interface ProgramFormProps {
   program: Program;
@@ -14,57 +15,6 @@ interface ProgramFormProps {
   onSave?: (updatedProgram: Program) => void;
   onCancel?: () => void;
 }
-
-// Mock data for dropdowns
-const mockDivisions = [
-  { id: 1, name: 'לוגיסטיקה' },
-  { id: 2, name: 'טכנולוגיה' },
-  { id: 3, name: 'מחקר ופיתוח' },
-  { id: 4, name: 'משאבי אנוש' },
-  { id: 5, name: 'מכירות' },
-  { id: 6, name: 'תפעול' }
-];
-
-const mockDepartments = [
-  { id: 1, name: 'רכש וחוזים', divisionId: 1 },
-  { id: 2, name: 'תפעול ותחזוקה', divisionId: 1 },
-  { id: 3, name: 'מערכות מידע', divisionId: 2 },
-  { id: 4, name: 'פיתוח תוכנה', divisionId: 2 },
-  { id: 5, name: 'מחקר', divisionId: 3 },
-  { id: 6, name: 'פיתוח', divisionId: 3 },
-  { id: 7, name: 'גיוס', divisionId: 4 },
-  { id: 8, name: 'שכר', divisionId: 4 }
-];
-
-const mockDomains = [
-  { id: 1, description: 'רכש לוגיסטי' },
-  { id: 2, description: 'רכש טכנולוגי' },
-  { id: 3, description: 'שירותים מקצועיים' },
-  { id: 4, description: 'תחזוקה ותפעול' },
-  { id: 5, description: 'ציוד משרדי' },
-  { id: 6, description: 'תוכנה ומערכות' }
-];
-
-const mockRequesters = [
-  { id: 5, fullName: 'רחל אברהם', divisionId: 4, departmentId: 7 },
-  { id: 6, fullName: 'יוסי לוי', divisionId: 3, departmentId: 5 },
-  { id: 7, fullName: 'מירי דוד', divisionId: 2, departmentId: 3 },
-  { id: 8, fullName: 'דני רוזן', divisionId: 1, departmentId: 1 }
-];
-
-const mockOfficers = [
-  { id: 3, fullName: 'שרה לוי', roleCode: 2, procurementTeam: 'צוות טכנולוגי' },
-  { id: 4, fullName: 'אבי כהן', roleCode: 3, procurementTeam: 'צוות לוגיסטי' },
-  { id: 9, fullName: 'דן ישראל', roleCode: 3, procurementTeam: 'צוות טכנולוגי' },
-  { id: 10, fullName: 'מיכל רון', roleCode: 3, procurementTeam: 'צוות לוגיסטי' }
-];
-
-const mockTeams = [
-  { id: 1, name: 'צוות טכנולוגי' },
-  { id: 2, name: 'צוות לוגיסטי' },
-  { id: 3, name: 'צוות ביטחוני' },
-  { id: 4, name: 'צוות מחשוב' }
-];
 
 // Generate quarter options
 const generateQuarterOptions = () => {
@@ -82,6 +32,21 @@ const generateQuarterOptions = () => {
 const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUpdate }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState(program);
+  
+  // API hooks
+  const { data: divisionsResponse } = useDivisions();
+  const { data: departmentsResponse } = useDepartments();
+  const { data: domainsResponse } = useDomains();
+  const { data: workersResponse } = useWorkers();
+  
+  const divisions = divisionsResponse?.data || [];
+  const departments = departmentsResponse?.data || [];
+  const domains = domainsResponse?.data || [];
+  const workers = workersResponse?.data || [];
+  
+  // Filter workers to get requesters and officers
+  const requesters = workers.filter((worker: any) => worker.roleCode === 4);
+  const officers = workers.filter((worker: any) => [2, 3].includes(worker.roleCode));
 
   const handleChange = (field: keyof Program, value: any) => {
     const updatedProgram = { ...formData, [field]: value, lastUpdate: new Date() };
@@ -128,10 +93,10 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
   const getAvailableTeams = () => {
     if (user?.roleCode === 1) {
       // Procurement manager sees all teams
-      return mockTeams;
+      return [...new Set(officers.map((o: any) => o.procurementTeam).filter(Boolean))].map(team => ({ name: team }));
     } else if (user?.roleCode === 2) {
       // Team leader sees only their team
-      return mockTeams.filter(team => team.name === user.procurementTeam);
+      return [{ name: user.procurementTeam }].filter(team => team.name);
     }
     return [];
   };
@@ -211,7 +176,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">ללא גורם דורש</SelectItem>
-                {mockRequesters.map(requester => (
+                {requesters.map((requester: any) => (
                   <SelectItem key={requester.id} value={requester.id.toString()}>
                     {requester.fullName}
                   </SelectItem>
@@ -244,7 +209,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">ללא אגף</SelectItem>
-                {mockDivisions.map(division => (
+                {divisions.map((division: any) => (
                   <SelectItem key={division.id} value={division.id.toString()}>
                     {division.name}
                   </SelectItem>
@@ -277,9 +242,9 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">ללא מחלקה</SelectItem>
-                {mockDepartments
-                  .filter(dept => !formData.divisionId || dept.divisionId === formData.divisionId)
-                  .map(department => (
+                {departments
+                  .filter((dept: any) => !formData.divisionId || dept.divisionId === formData.divisionId)
+                  .map((department: any) => (
                     <SelectItem key={department.id} value={department.id.toString()}>
                       {department.name}
                     </SelectItem>
@@ -421,7 +386,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">ללא תחום</SelectItem>
-                {mockDomains.map(domain => (
+                {domains.map((domain: any) => (
                   <SelectItem key={domain.id} value={domain.id.toString()}>
                     {domain.description}
                   </SelectItem>
@@ -457,7 +422,7 @@ const ProgramForm: React.FC<ProgramFormProps> = ({ program, canEdit, onProgramUp
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">ללא קניין</SelectItem>
-                {getAvailableOfficers().map(officer => (
+                {getAvailableOfficers().map((officer: any) => (
                   <SelectItem key={officer.id} value={officer.id.toString()}>
                     {officer.fullName}
                   </SelectItem>

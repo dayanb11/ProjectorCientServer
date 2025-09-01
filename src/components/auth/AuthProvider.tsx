@@ -10,6 +10,8 @@ interface User {
   roleDescription: string;
   procurementTeam?: string;
   email?: string;
+  divisionId?: number;
+  departmentId?: number;
 }
 
 interface AuthContextType {
@@ -49,8 +51,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const isValid = await apiClient.verifyToken();
       if (isValid) {
         // Get user info from token verification
-        const response = await apiClient.request({ url: '/auth/me' });
-        setUser(response.data.data);
+        const response = await apiClient.getCurrentUser();
+        setUser(response.data);
       }
     } catch (error) {
       console.error('Auth check failed:', error);

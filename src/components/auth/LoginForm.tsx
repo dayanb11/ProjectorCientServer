@@ -116,6 +116,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
               <p className="text-xs text-gray-500">
                 הזן את קוד המשתמש והסיסמה שלך כפי שהוגדרו במערכת
               </p>
+              <div className="mt-2 text-xs text-gray-400">
+                <p>משתמשי דמו: 1001-1008 | סיסמה: 123456</p>
+              </div>
             </div>
           </div>
         </CardContent>
