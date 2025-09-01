@@ -176,7 +176,3 @@ export interface NavItem {
   icon: string;
   roles: UserRole[];
   route: string;
-}
-
-// Export current user and mock programs for easy access
-export { currentUser, mockPrograms } from '../data/mockData';
