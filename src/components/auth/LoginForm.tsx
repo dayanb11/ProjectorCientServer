@@ -5,10 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { findUserByEmployeeId, validateUserPassword } from '../../data/mockUsers';
+import { LoginRequest } from '../../lib/api-client';
 
 interface LoginFormProps {
-  onLogin: (user: any) => void;
+  onLogin: (credentials: LoginRequest) => Promise<void>;
 }
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
@@ -37,45 +37,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
     }
 
     try {
-      // Find user in mock data
-      const user = findUserByEmployeeId(employeeId);
-      
-      if (!user) {
-        setError('קוד משתמש לא נמצא במערכת');
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate password
-      if (!validateUserPassword(user, password)) {
-        setError('סיסמה שגויה');
-        setIsLoading(false);
-        return;
-      }
-
-      // Store mock token
-      localStorage.setItem('authToken', 'mock-token-' + user.id);
-      
-      // Transform the user data to match our frontend format
-      const transformedUser = {
-        id: user.id,
-        employeeId: user.employeeId,
-        fullName: user.fullName,
-        roleCode: user.roleCode,
-        roleDescription: user.roleDescription,
-        procurementTeam: user.procurementTeam,
-        email: user.email
-      };
-
-      toast({
-        title: "התחברות הצליחה",
-        description: `ברוך הבא ${user.fullName}`,
-      });
-      
-      onLogin(transformedUser);
+      await onLogin({ employeeId, password });
     } catch (error) {
-      console.error('Login error:', error);
-      setError('שגיאה בהתחברות. אנא נסה שוב.');
+      setError('שגיאה בהתחברות. אנא בדוק את הפרטים ונסה שוב.');
     } finally {
       setIsLoading(false);
     }
@@ -149,17 +113,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
 
           <div className="mt-6 text-center text-sm text-gray-600">
             <div className="border-t pt-4">
-              <p className="font-medium mb-2">משתמשים לדוגמה:</p>
-              <div className="space-y-1 text-xs">
-                <p>מנהל מערכת: 9999 / 123456</p>
-                <p>מנהל רכש: 1001 / 123456</p>
-                <p>ראש צוות: 2001 / 123456</p>
-                <p>קניין: 3001 / 123456</p>
-                <p>גורם דורש: 4001 / 123456</p>
-                <p>מנהל יחידה: 5001 / 123456</p>
-                <p>חברי הנהלה: 6001 / 123456</p>
-                <p>גורם טכני: 9001 / 123456</p>
-              </div>
+              <p className="text-xs text-gray-500">
+                הזן את קוד המשתמש והסיסמה שלך כפי שהוגדרו במערכת
+              </p>
             </div>
           </div>
         </CardContent>

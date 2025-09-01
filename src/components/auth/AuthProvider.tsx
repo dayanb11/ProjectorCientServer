@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiClient, LoginRequest } from '../../lib/api-client';
+import { useToast } from '../../hooks/use-toast';
 
 interface User {
   id: number;
@@ -12,10 +14,10 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (credentials: LoginRequest) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
-  token: string | null;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,41 +36,68 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user and token are stored in localStorage
-    const storedUser = localStorage.getItem('currentUser');
-    const storedToken = localStorage.getItem('authToken');
-    
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setToken(storedToken);
-    }
+    // Check if user is authenticated on app load
+    checkAuthStatus();
   }, []);
 
-  const login = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-    
-    // Token should already be stored by LoginForm, but get it here for state
-    const authToken = localStorage.getItem('authToken');
-    setToken(authToken);
+  const checkAuthStatus = async () => {
+    try {
+      const isValid = await apiClient.verifyToken();
+      if (isValid) {
+        // Get user info from token verification
+        const response = await apiClient.request({ url: '/auth/me' });
+        setUser(response.data.data);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('authToken');
+  const login = async (credentials: LoginRequest) => {
+    try {
+      setIsLoading(true);
+      const response = await apiClient.login(credentials);
+      setUser(response.user);
+      
+      toast({
+        title: "התחברות הצליחה",
+        description: `ברוך הבא ${response.user.fullName}`,
+      });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'שגיאה בהתחברות';
+      toast({
+        title: "שגיאת התחברות",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiClient.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const value = {
     user,
     login,
     logout,
-    isAuthenticated: !!user && !!token,
-    token,
+    isAuthenticated: !!user,
+    isLoading,
   };
 
   return (

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { hasPermissionForRoute, getDefaultRouteForRole } from '../../utils/rolePermissions';
-import { verifyToken } from '../../utils/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,30 +9,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, route }) => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const [isVerifying, setIsVerifying] = useState(true);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (isAuthenticated && user) {
-        // Verify token is still valid
-        const isValid = await verifyToken();
-        if (!isValid) {
-          logout();
-        }
-      }
-      setIsVerifying(false);
-    };
-
-    checkAuth();
-  }, [isAuthenticated, user, logout]);
-
-  if (isVerifying) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">מאמת הרשאות...</p>
+          <p className="mt-2 text-gray-600">טוען...</p>
         </div>
       </div>
     );

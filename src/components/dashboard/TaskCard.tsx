@@ -1,8 +1,8 @@
 import React from 'react';
-import { Program, STATUS_CONFIG } from '../../types';
+import { STATUS_CONFIG } from '../../types';
 
 interface TaskCardProps {
-  task: Program;
+  task: any; // API response type
   onClick?: () => void;
 }
 
@@ -73,7 +73,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
         
         {/* Task ID in top left */}
         <div className="text-left ml-4">
-          <div className="text-lg font-bold text-gray-900">{task.taskId}</div>
+          <div className="text-lg font-bold text-gray-900">{task.id}</div>
         </div>
       </div>
 
