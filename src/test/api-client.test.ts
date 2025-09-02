@@ -49,7 +49,7 @@ describe('API Client', () => {
 
     it('should handle login failure', async () => {
       mockedAxios.create.mockReturnValue({
-        post: vi.fn().mockRejectedValue(new Error('Invalid credentials')),
+        post: vi.fn().mockRejectedValue(new Error('Invalid employee credentials')),
         interceptors: {
           request: { use: vi.fn() },
           response: { use: vi.fn() }
@@ -59,7 +59,7 @@ describe('API Client', () => {
       await expect(apiClient.login({
         employeeId: '1001',
         password: 'wrong'
-      })).rejects.toThrow('Invalid credentials');
+      })).rejects.toThrow('Invalid employee credentials');
     });
   });
 
