@@ -64,7 +64,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="employeeId" className="text-right">
-                קוד משתמש (4 ספרות)
+                קוד עובד (4 ספרות)
               </Label>
               <Input
                 id="employeeId"
@@ -72,7 +72,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 className="text-right text-lg"
-                placeholder="0000"
+                placeholder="1001"
                 maxLength={4}
                 required
               />
@@ -114,10 +114,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin }) => {
           <div className="mt-6 text-center text-sm text-gray-600">
             <div className="border-t pt-4">
               <p className="text-xs text-gray-500">
-                הזן את קוד המשתמש והסיסמה שלך כפי שהוגדרו במערכת
+                הזן את קוד העובד והסיסמה שלך כפי שהוגדרו בטבלת העובדים
               </p>
               <div className="mt-2 text-xs text-gray-400">
-                <p>משתמשי דמו: 1001-1008 | סיסמה: 123456</p>
+                <p>עובדי דמו: 1001-1008 | סיסמה: 123456</p>
               </div>
             </div>
           </div>

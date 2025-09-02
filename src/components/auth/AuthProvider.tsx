@@ -8,10 +8,10 @@ interface User {
   fullName: string;
   roleCode: number;
   roleDescription: string;
-  procurementTeam?: string;
-  email?: string;
   divisionId?: number;
   departmentId?: number;
+  procurementTeam?: string;
+  email?: string;
 }
 
 interface AuthContextType {

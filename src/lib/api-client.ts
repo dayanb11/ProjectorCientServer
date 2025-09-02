@@ -31,10 +31,10 @@ export interface LoginResponse {
     fullName: string;
     roleCode: number;
     roleDescription: string;
-    procurementTeam?: string;
-    email?: string;
     divisionId?: number;
     departmentId?: number;
+    procurementTeam?: string;
+    email?: string;
   };
   accessToken: string;
   refreshToken: string;
@@ -175,7 +175,7 @@ class ApiClient {
       }
 
       const response = await axios.post<RefreshTokenResponse>(
-        `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
+        `${import.meta.env.VITE_API_BASE_URL}/workers/refresh`,
         { refreshToken }
       );
 
@@ -191,7 +191,7 @@ class ApiClient {
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/auth/login', credentials);
+    const response = await this.client.post<LoginResponse>('/workers/login', credentials);
     const { accessToken, refreshToken } = response.data;
     this.setTokens(accessToken, refreshToken);
     return response.data;
@@ -199,7 +199,7 @@ class ApiClient {
 
   async logout(): Promise<void> {
     try {
-      await this.client.post('/auth/logout');
+      await this.client.post('/workers/logout');
     } finally {
       this.clearTokens();
     }
@@ -207,7 +207,7 @@ class ApiClient {
 
   async verifyToken(): Promise<boolean> {
     try {
-      await this.client.get('/auth/me');
+      await this.client.get('/workers/me');
       return true;
     } catch {
       return false;
@@ -215,7 +215,7 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<ApiResponse<any>> {
-    const response = await this.client.get('/auth/me');
+    const response = await this.client.get('/workers/me');
     return response.data;
   }
 
