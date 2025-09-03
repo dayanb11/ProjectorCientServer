@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,72 +7,173 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  firstName String?
-  lastName  String?
-  role      UserRole @default(USER)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  programs Program[]
-  workers  Worker[]
-
-  @@map("users")
-}
-
-model Program {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  status      ProgramStatus @default(ACTIVE)
-  startDate   DateTime?
-  endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  createdBy   User     @relation(fields: [createdById], references: [id])
-  createdById String
-  workers     Worker[]
-
-  @@map("programs")
-}
-
+// Workers table - מטפל בכל המשתמשים במערכת
 model Worker {
-  id          String   @id @default(cuid())
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  position    String?
-  department  String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                Int       @id @default(autoincrement())
+  employeeId        String    @unique @map("employee_id")
+  roleCode          Int       @map("role_code")
+  fullName          String    @map("full_name")
+  roleDescription   String?   @map("role_description")
+  divisionId        Int?      @map("division_id")
+  departmentId      Int?      @map("department_id")
+  procurementTeam   String?   @map("procurement_team")
+  password          String
+  availableWorkDays String?   @map("available_work_days")
+  email             String?
+  lastLogin         DateTime? @map("last_login")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  createdBy   User      @relation(fields: [createdById], references: [id])
-  createdById String
-  program     Program?  @relation(fields: [programId], references: [id])
-  programId   String?
+  division          Division?    @relation(fields: [divisionId], references: [id])
+  department        Department?  @relation(fields: [departmentId], references: [id])
+  requestedPrograms Program[]    @relation("ProgramRequester")
+  assignedPrograms  Program[]    @relation("ProgramAssignedOfficer")
 
   @@map("workers")
 }
 
-enum UserRole {
-  ADMIN
-  MANAGER
-  USER
+// Divisions table - אגפים
+model Division {
+  id         Int      @id @default(autoincrement())
+  name       String
+  isInternal Boolean  @default(true) @map("is_internal")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workers     Worker[]
+  departments Department[]
+  programs    Program[]
+
+  @@map("divisions")
 }
 
-enum ProgramStatus {
-  ACTIVE
-  INACTIVE
-  COMPLETED
-  CANCELLED
+// Departments table - מחלקות
+model Department {
+  id         Int      @id @default(autoincrement())
+  name       String
+  divisionId Int      @map("division_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  division Division @relation(fields: [divisionId], references: [id])
+  workers  Worker[]
+  programs Program[]
+
+  @@map("departments")
+}
+
+// Domains table - תחומי רכש
+model Domain {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  programs Program[]
+
+  @@map("domains")
+}
+
+// Activity Pool table - פעילויות רכש
+model ActivityPool {
+  id                Int      @id @default(autoincrement())
+  name              String
+  toolsAndResources String?  @map("tools_and_resources")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  stations ProgramStation[]
+
+  @@map("activity_pool")
+}
+
+// Programs table - משימות עבודה ראשיות
+model Program {
+  id                 Int       @id @default(autoincrement())
+  workYear           Int       @map("work_year")
+  requiredQuarter    DateTime  @map("required_quarter")
+  title              String
+  description        String?
+  requesterId        Int       @map("requester_id")
+  divisionId         Int       @map("division_id")
+  departmentId       Int?      @map("department_id")
+  domainId           Int?      @map("domain_id")
+  estimatedAmount    Decimal?  @map("estimated_amount")
+  currency           String?
+  supplierList       String?   @map("supplier_list")
+  justification      String?
+  planningSource     String    @map("planning_source")
+  complexity         Int?
+  engagementTypeId   Int?      @map("engagement_type_id")
+  status             String    @default("Open")
+  assignedOfficerId  Int?      @map("assigned_officer_id")
+  startDate          DateTime? @map("start_date")
+  planningNotes      String?   @map("planning_notes")
+  officerNotes       String?   @map("officer_notes")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  requester        Worker           @relation("ProgramRequester", fields: [requesterId], references: [id])
+  division         Division         @relation(fields: [divisionId], references: [id])
+  department       Department?      @relation(fields: [departmentId], references: [id])
+  domain           Domain?          @relation(fields: [domainId], references: [id])
+  assignedOfficer  Worker?          @relation("ProgramAssignedOfficer", fields: [assignedOfficerId], references: [id])
+  stations         ProgramStation[]
+
+  @@map("programs")
+}
+
+// Program Stations table - תחנות במשימה
+model ProgramStation {
+  id               Int       @id @default(autoincrement())
+  programId        Int       @map("program_id")
+  stationId        Int       @map("station_id")
+  activityId       Int?      @map("activity_id")
+  completionDate   DateTime? @map("completion_date")
+  reportingUserId  Int?      @map("reporting_user_id")
+  reference        String?
+  notes            String?
+  isLastStation    Boolean   @default(false) @map("is_last_station")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  program  Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  activity ActivityPool? @relation(fields: [activityId], references: [id])
+
+  @@unique([programId, stationId])
+  @@map("program_stations")
+}
+
+// Engagement Types table - סוגי התקשרויות
+model EngagementType {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  processes EngagementTypeProcess[]
+
+  @@map("engagement_types")
+}
+
+// Engagement Type Processes table - תהליכי סוגי התקשרויות
+model EngagementTypeProcess {
+  id               Int @id @default(autoincrement())
+  engagementTypeId Int @map("engagement_type_id")
+  stationId        Int @map("station_id")
+  activityId       Int @map("activity_id")
+
+  // Relations
+  engagementType EngagementType @relation(fields: [engagementTypeId], references: [id], onDelete: Cascade)
+
+  @@unique([engagementTypeId, stationId])
+  @@map("engagement_type_processes")
 }
