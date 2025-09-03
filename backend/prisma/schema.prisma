@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,4 +20,8 @@ model WORKERS {
   DOMAIN       String?
   TEAM         String?
   ACTIVE       Boolean @default(true)
+  CREATED_AT   DateTime @default(now())
+  UPDATED_AT   DateTime @updatedAt
+
+  @@map("workers")
 }
