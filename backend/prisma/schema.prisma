@@ -10,18 +10,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model WORKERS {
-  WORKER_ID    Int     @id
-  WORKER_NAME  String?
-  PASSWORD     String?
-  ROLE_ID      Int?
-  DEPARTMENT   String?
-  DIVISION     String?
-  DOMAIN       String?
-  TEAM         String?
-  ACTIVE       Boolean @default(true)
-  CREATED_AT   DateTime @default(now())
-  UPDATED_AT   DateTime @updatedAt
+model Worker {
+  id        String   @id @default(cuid())
+  workerId  String   @unique @map("worker_id")
+  password  String
+  name      String?
+  email     String?
+  role      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("workers")
 }
