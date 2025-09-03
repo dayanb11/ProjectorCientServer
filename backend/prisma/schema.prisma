@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String?
+  lastName  String?
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  programs Program[]
+  workers  Worker[]
+
+  @@map("users")
+}
+
+model Program {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      ProgramStatus @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdById String
+  workers     Worker[]
+
+  @@map("programs")
+}
+
+model Worker {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  position    String?
+  department  String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdById String
+  program     Program?  @relation(fields: [programId], references: [id])
+  programId   String?
+
+  @@map("workers")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum ProgramStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELLED
+}
