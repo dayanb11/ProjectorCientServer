@@ -87,7 +87,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+      baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ class ApiClient {
       }
 
       const response = await axios.post<RefreshTokenResponse>(
-        `${import.meta.env.VITE_API_BASE_URL}/workers/refresh`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000'}/workers/refresh`,
         { refreshToken }
       );
 
