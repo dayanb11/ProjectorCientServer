@@ -17,6 +17,4 @@ model WORKERS {
   DOMAIN       String?
   TEAM         String?
   ACTIVE       Boolean @default(true)
-  
-  @@map("workers")
 }
