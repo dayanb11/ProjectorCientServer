@@ -84,6 +84,7 @@ export interface UpdateStationRequest {
 class ApiClient {
   private client: AxiosInstance;
   private refreshPromise: Promise<string> | null = null;
+  private mockMode = true; // Enable mock mode for demo
 
   constructor() {
     this.client = axios.create({
@@ -191,13 +192,59 @@ class ApiClient {
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<LoginResponse> {
+    if (this.mockMode) {
+      return this.mockLogin(credentials);
+    }
     const response = await this.client.post<LoginResponse>('/workers/login', credentials);
     const { accessToken, refreshToken } = response.data;
     this.setTokens(accessToken, refreshToken);
     return response.data;
   }
 
+  private async mockLogin(credentials: LoginRequest): Promise<LoginResponse> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Mock users for demo
+    const mockUsers = [
+      { id: 1, employeeId: '1001', fullName: 'מנהל רכש', roleCode: 1, roleDescription: 'מנהל רכש', password: '123456' },
+      { id: 2, employeeId: '1002', fullName: 'ראש צוות יעודי', roleCode: 2, roleDescription: 'ראש צוות', procurementTeam: 'יעודי', password: '123456' },
+      { id: 3, employeeId: '1003', fullName: 'קניין טכנולוגי', roleCode: 3, roleDescription: 'קניין', procurementTeam: 'טכנולוגי', password: '123456' },
+      { id: 4, employeeId: '1004', fullName: 'גורם דורש', roleCode: 4, roleDescription: 'גורם דורש', divisionId: 1, departmentId: 1, password: '123456' },
+      { id: 5, employeeId: '1005', fullName: 'מנהל יחידה', roleCode: 5, roleDescription: 'מנהל יחידה', divisionId: 2, password: '123456' },
+      { id: 6, employeeId: '1006', fullName: 'חבר הנהלה', roleCode: 6, roleDescription: 'חברי הנהלה וגורם מטה ארגוני', password: '123456' },
+      { id: 7, employeeId: '1007', fullName: 'מנהלן מערכת', roleCode: 0, roleDescription: 'מנהלן מערכת', password: '123456' },
+      { id: 8, employeeId: '1008', fullName: 'גורם טכני', roleCode: 9, roleDescription: 'גורם טכני', password: '123456' }
+    ];
+    
+    const user = mockUsers.find(u => u.employeeId === credentials.employeeId && u.password === credentials.password);
+    
+    if (!user) {
+      throw new Error('Invalid employee credentials');
+    }
+    
+    return {
+      user: {
+        id: user.id,
+        employeeId: user.employeeId,
+        fullName: user.fullName,
+        roleCode: user.roleCode,
+        roleDescription: user.roleDescription,
+        divisionId: user.divisionId,
+        departmentId: user.departmentId,
+        procurementTeam: user.procurementTeam,
+        email: user.email
+      },
+      accessToken: 'mock-access-token',
+      refreshToken: 'mock-refresh-token'
+    };
+  }
+
   async logout(): Promise<void> {
+    if (this.mockMode) {
+      this.clearTokens();
+      return;
+    }
     try {
       await this.client.post('/workers/logout');
     } finally {
@@ -206,6 +253,9 @@ class ApiClient {
   }
 
   async verifyToken(): Promise<boolean> {
+    if (this.mockMode) {
+      return !!this.getAccessToken();
+    }
     try {
       await this.client.get('/workers/me');
       return true;
@@ -215,22 +265,61 @@ class ApiClient {
   }
 
   async getCurrentUser(): Promise<ApiResponse<any>> {
+    if (this.mockMode) {
+      const token = this.getAccessToken();
+      if (token === 'mock-access-token') {
+        return {
+          success: true,
+          data: {
+            id: 1,
+            employeeId: '1001',
+            fullName: 'מנהל רכש',
+            roleCode: 1,
+            roleDescription: 'מנהל רכש'
+          }
+        };
+      }
+      throw new Error('Invalid token');
+    }
     const response = await this.client.get('/workers/me');
     return response.data;
   }
 
   // Programs/Tasks endpoints
   async getPrograms(filters?: Record<string, any>): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return {
+        success: true,
+        data: []
+      };
+    }
     const response = await this.client.get('/programs', { params: filters });
     return response.data;
   }
 
   async getProgram(taskId: number): Promise<ApiResponse<any>> {
+    if (this.mockMode) {
+      return {
+        success: true,
+        data: null
+      };
+    }
     const response = await this.client.get(`/programs/${taskId}`);
     return response.data;
   }
 
   async createProgram(data: CreateProgramRequest): Promise<ApiResponse<any>> {
+    if (this.mockMode) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        success: true,
+        data: {
+          taskId: Math.floor(Math.random() * 9000) + 1000,
+          title: data.title,
+          status: 'Open'
+        }
+      };
+    }
     const response = await this.client.post('/programs', data);
     return response.data;
   }
@@ -258,41 +347,65 @@ class ApiClient {
 
   // System data endpoints
   async getActivityPool(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/activity-pool');
     return response.data;
   }
 
   async getDomains(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/domains');
     return response.data;
   }
 
   async getWorkers(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/workers');
     return response.data;
   }
 
   async getDivisions(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/divisions');
     return response.data;
   }
 
   async getDepartments(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/departments');
     return response.data;
   }
 
   async getProcurementTeams(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/procurement-teams');
     return response.data;
   }
 
   async getEngagementTypes(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/system/engagement-types');
     return response.data;
   }
 
   async getOrganizationalRoles(): Promise<ApiResponse<any[]>> {
+    if (this.mockMode) {
+      return { success: true, data: [] };
+    }
     const response = await this.client.get('/infrastructure/organizational-roles');
     return response.data;
   }
