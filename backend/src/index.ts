@@ -1,48 +1,89 @@
+import express from 'express';
+import cors from 'cors';
 import dotenv from 'dotenv';
-import app from './app';
-import { logger } from './infrastructure/logging/logger';
-import { connectDatabase } from './infrastructure/startup/database';
+import { PrismaClient } from '@prisma/client';
 
-// Load environment variables first
+// Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 4000;
+const app = express();
+const port = process.env.PORT || 4000;
+const prisma = new PrismaClient();
 
-async function startServer() {
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Login endpoint
+app.post('/workers/login', async (req, res) => {
   try {
-    logger.info('🚀 Starting PROJECTOR Backend Server...');
-    logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-    logger.info(`🔗 CORS Origin: ${process.env.CORS_ORIGIN}`);
+    console.log('Login attempt:', req.body);
     
-    // Connect to database
-    logger.info('🔌 Connecting to database...');
-    await connectDatabase();
+    const { workerId, password } = req.body;
     
-    // Start server
-    app.listen(PORT, () => {
-      logger.info(`✅ Server running successfully on port ${PORT}`);
-      logger.info(`🌐 API available at: http://localhost:${PORT}`);
-      logger.info(`❤️  Health check: http://localhost:${PORT}/health`);
+    if (!workerId || !password) {
+      return res.status(400).json({ 
+        error: 'Worker ID and password are required' 
+      });
+    }
+
+    // Find worker in database
+    const worker = await prisma.wORKERS.findUnique({
+      where: { WORKER_ID: parseInt(workerId) }
     });
+
+    console.log('Worker found:', worker ? 'Yes' : 'No');
+
+    if (!worker) {
+      return res.status(401).json({ 
+        error: 'Invalid credentials' 
+      });
+    }
+
+    // Check if worker is active
+    if (!worker.ACTIVE) {
+      return res.status(401).json({ 
+        error: 'Account is inactive' 
+      });
+    }
+
+    // Simple password check (in production, use bcrypt)
+    if (worker.PASSWORD !== password) {
+      return res.status(401).json({ 
+        error: 'Invalid credentials' 
+      });
+    }
+
+    // Return worker data (without password)
+    const { PASSWORD, ...workerData } = worker;
+    
+    res.json({
+      success: true,
+      worker: workerData
+    });
+
   } catch (error) {
-    logger.error('❌ Failed to start server:', error);
-    process.exit(1);
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
   }
-}
+});
+
+// Start server
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/health`);
+});
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
+process.on('SIGINT', async () => {
+  console.log('Shutting down gracefully...');
+  await prisma.$disconnect();
   process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
-
-// Start the server
-startServer().catch((error) => {
-  logger.error('Startup error:', error);
-  process.exit(1);
 });
